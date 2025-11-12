@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Helpdesk Auto-Triage System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 0;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        header h1 {
+            text-align: center;
+            font-size: 2em;
+            font-weight: 600;
+        }
+
+        header p {
+            text-align: center;
+            margin-top: 10px;
+            opacity: 0.9;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #38a169;
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #e53e3e;
+        }
+
+        .btn-secondary {
+            background: #edf2f7;
+            color: #4a5568;
+        }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+        }
+
+        .filters {
+            display: flex;
+            gap: 10px;
+        }
+
+        select {
+            padding: 10px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .tickets-grid {
+            display: grid;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .ticket-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border-left: 4px solid #e2e8f0;
+        }
+
+        .ticket-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+        }
+
+        .ticket-card.priority-P0 {
+            border-left-color: #f56565;
+        }
+
+        .ticket-card.priority-P1 {
+            border-left-color: #ed8936;
+        }
+
+        .ticket-card.priority-P2 {
+            border-left-color: #ecc94b;
+        }
+
+        .ticket-card.priority-P3 {
+            border-left-color: #48bb78;
+        }
+
+        .ticket-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .ticket-id {
+            font-size: 12px;
+            color: #a0aec0;
+            font-weight: 600;
+        }
+
+        .ticket-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+            margin: 5px 0;
+        }
+
+        .ticket-meta {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .badge {
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-priority {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .badge-priority.P0 {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .badge-priority.P1 {
+            background: #feebc8;
+            color: #c05621;
+        }
+
+        .badge-priority.P2 {
+            background: #fefcbf;
+            color: #975a16;
+        }
+
+        .badge-priority.P3 {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .badge-status {
+            background: #bee3f8;
+            color: #2c5282;
+        }
+
+        .badge-assignee {
+            background: #e9d8fd;
+            color: #553c9a;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            padding: 24px;
+            border-bottom: 2px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 24px;
+            color: #2d3748;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #4a5568;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #a0aec0;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+
+        .close-btn:hover {
+            background: #edf2f7;
+            color: #4a5568;
+        }
+
+        .detail-section {
+            margin-bottom: 24px;
+        }
+
+        .detail-section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .detail-section p {
+            color: #4a5568;
+            line-height: 1.6;
+        }
+
+        .triage-info {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .confidence-bar {
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: #48bb78;
+            transition: width 0.3s ease;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #a0aec0;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #fff5f5;
+            border: 2px solid #feb2b2;
+            border-radius: 8px;
+            padding: 16px;
+            color: #c53030;
+            margin-bottom: 16px;
+        }
+
+        .success-message {
+            background: #f0fff4;
+            border: 2px solid #9ae6b4;
+            border-radius: 8px;
+            padding: 16px;
+            color: #22543d;
+            margin-bottom: 16px;
+        }
+
+        .activity-log {
+            margin-top: 24px;
+        }
+
+        .activity-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px;
+            border-left: 3px solid #e2e8f0;
+            margin-bottom: 8px;
+        }
+
+        .activity-item .time {
+            font-size: 12px;
+            color: #a0aec0;
+            min-width: 140px;
+        }
+
+        .activity-item .description {
+            flex: 1;
+            color: #4a5568;
+        }
+
+        .reply-draft-box {
+            background: #fffff0;
+            border: 2px solid #fbd38d;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .reply-draft-box textarea {
+            margin-top: 12px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #a0aec0;
+        }
+
+        .empty-state h3 {
+            font-size: 24px;
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>🎫 Helpdesk Auto-Triage System</h1>
+            <p>AI-powered ticket management with intelligent priority assignment and routing</p>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="actions">
+            <button class="btn btn-primary" onclick="openCreateTicketModal()">+ Create New Ticket</button>
+            <div class="filters">
+                <select id="statusFilter" onchange="loadTickets()">
+                    <option value="">All Status</option>
+                    <option value="open">Open</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="waiting">Waiting</option>
+                    <option value="resolved">Resolved</option>
+                    <option value="closed">Closed</option>
+                </select>
+                <select id="priorityFilter" onchange="loadTickets()">
+                    <option value="">All Priorities</option>
+                    <option value="P0">P0 - Critical</option>
+                    <option value="P1">P1 - High</option>
+                    <option value="P2">P2 - Medium</option>
+                    <option value="P3">P3 - Low</option>
+                </select>
+                <button class="btn btn-secondary" onclick="loadTickets()">🔄 Refresh</button>
+            </div>
+        </div>
+
+        <div id="ticketsContainer" class="tickets-grid">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Loading tickets...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create/Edit Ticket Modal -->
+    <div id="ticketModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Create New Ticket</h2>
+                <button class="close-btn" onclick="closeTicketModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="modalMessage"></div>
+                <form id="ticketForm" onsubmit="submitTicket(event)">
+                    <div class="form-group">
+                        <label for="ticketTitle">Title *</label>
+                        <input type="text" id="ticketTitle" required placeholder="Brief description of the issue">
+                    </div>
+                    <div class="form-group">
+                        <label for="ticketDescription">Description *</label>
+                        <textarea id="ticketDescription" required placeholder="Detailed description of the issue..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="customerEmail">Customer Email *</label>
+                        <input type="email" id="customerEmail" required placeholder="customer@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="ticketTags">Tags (comma-separated)</label>
+                        <input type="text" id="ticketTags" placeholder="e.g., login, billing, urgent">
+                    </div>
+                    <div class="button-group">
+                        <button type="submit" class="btn btn-primary">Create Ticket</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeTicketModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ticket Detail Modal -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="detailTitle">Ticket Details</h2>
+                <button class="close-btn" onclick="closeDetailModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="detailBody">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading details...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api';
+        let currentTicketId = null;
+
+        // Load tickets on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTickets();
+        });
+
+        async function loadTickets() {
+            const container = document.getElementById('ticketsContainer');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading tickets...</p></div>';
+
+            try {
+                const statusFilter = document.getElementById('statusFilter').value;
+                const priorityFilter = document.getElementById('priorityFilter').value;
+
+                let url = `${API_BASE}/tickets`;
+                const params = new URLSearchParams();
+                if (statusFilter) params.append('status_filter', statusFilter);
+                if (priorityFilter) params.append('priority_filter', priorityFilter);
+                if (params.toString()) url += `?${params.toString()}`;
+
+                const response = await fetch(url);
+                const tickets = await response.json();
+
+                if (tickets.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <h3>No tickets found</h3>
+                            <p>Create a new ticket to get started</p>
+                            <button class="btn btn-primary" style="margin-top: 20px" onclick="openCreateTicketModal()">Create Ticket</button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = tickets.map(ticket => `
+                    <div class="ticket-card ${ticket.priority ? 'priority-' + ticket.priority : ''}" onclick="openTicketDetail(${ticket.id})">
+                        <div class="ticket-header">
+                            <div>
+                                <div class="ticket-id">#${ticket.id}</div>
+                                <div class="ticket-title">${escapeHtml(ticket.title)}</div>
+                            </div>
+                        </div>
+                        <p style="color: #718096; margin: 10px 0; font-size: 14px;">${escapeHtml(ticket.description.substring(0, 100))}${ticket.description.length > 100 ? '...' : ''}</p>
+                        <div class="ticket-meta">
+                            ${ticket.priority ? `<span class="badge badge-priority ${ticket.priority}">${ticket.priority}</span>` : ''}
+                            <span class="badge badge-status">${ticket.status.replace('_', ' ')}</span>
+                            ${ticket.assigned_to ? `<span class="badge badge-assignee">👤 ${escapeHtml(ticket.assigned_to)}</span>` : ''}
+                            ${ticket.triage_result ? '<span class="badge" style="background: #c6f6d5; color: #22543d;">✓ Triaged</span>' : ''}
+                        </div>
+                        <div style="margin-top: 10px; font-size: 12px; color: #a0aec0;">
+                            ${escapeHtml(ticket.customer_email)} • ${new Date(ticket.created_at).toLocaleDateString()}
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="error-message">
+                        <strong>Error loading tickets:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function openCreateTicketModal() {
+            document.getElementById('modalTitle').textContent = 'Create New Ticket';
+            document.getElementById('ticketForm').reset();
+            document.getElementById('modalMessage').innerHTML = '';
+            document.getElementById('ticketModal').classList.add('active');
+        }
+
+        function closeTicketModal() {
+            document.getElementById('ticketModal').classList.remove('active');
+        }
+
+        async function submitTicket(event) {
+            event.preventDefault();
+
+            const title = document.getElementById('ticketTitle').value;
+            const description = document.getElementById('ticketDescription').value;
+            const customer_email = document.getElementById('customerEmail').value;
+            const tagsInput = document.getElementById('ticketTags').value;
+            const tags = tagsInput ? tagsInput.split(',').map(t => t.trim()).filter(t => t) : [];
+
+            try {
+                const response = await fetch(`${API_BASE}/tickets`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, description, customer_email, tags })
+                });
+
+                if (!response.ok) throw new Error('Failed to create ticket');
+
+                const ticket = await response.json();
+
+                document.getElementById('modalMessage').innerHTML = `
+                    <div class="success-message">
+                        Ticket #${ticket.id} created successfully!
+                    </div>
+                `;
+
+                setTimeout(() => {
+                    closeTicketModal();
+                    loadTickets();
+                }, 1500);
+            } catch (error) {
+                document.getElementById('modalMessage').innerHTML = `
+                    <div class="error-message">
+                        Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function openTicketDetail(ticketId) {
+            currentTicketId = ticketId;
+            const modal = document.getElementById('detailModal');
+            const body = document.getElementById('detailBody');
+
+            modal.classList.add('active');
+            body.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading details...</p></div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/tickets/${ticketId}`);
+                const ticket = await response.json();
+
+                body.innerHTML = `
+                    <div class="detail-section">
+                        <h3>Ticket #${ticket.id}</h3>
+                        <h2 style="font-size: 24px; margin: 10px 0;">${escapeHtml(ticket.title)}</h2>
+                        <div class="ticket-meta">
+                            ${ticket.priority ? `<span class="badge badge-priority ${ticket.priority}">${ticket.priority}</span>` : '<span class="badge">No Priority</span>'}
+                            <span class="badge badge-status">${ticket.status.replace('_', ' ')}</span>
+                            ${ticket.assigned_to ? `<span class="badge badge-assignee">👤 ${escapeHtml(ticket.assigned_to)}</span>` : ''}
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <h3>📋 Description</h3>
+                        <p>${escapeHtml(ticket.description)}</p>
+                        <p style="margin-top: 10px; font-size: 14px; color: #a0aec0;">
+                            From: ${escapeHtml(ticket.customer_email)}<br>
+                            Created: ${new Date(ticket.created_at).toLocaleString()}
+                        </p>
+                    </div>
+
+                    ${ticket.triage_result ? renderTriageResult(ticket.triage_result) : `
+                        <div class="detail-section">
+                            <button class="btn btn-success" onclick="triageTicket(${ticket.id})">
+                                🤖 Auto-Triage This Ticket
+                            </button>
+                            <p style="margin-top: 10px; color: #718096; font-size: 14px;">
+                                AI will analyze this ticket and suggest priority, assignee, and draft a reply.
+                            </p>
+                        </div>
+                    `}
+
+                    ${ticket.activity_logs && ticket.activity_logs.length > 0 ? `
+                        <div class="activity-log">
+                            <h3>📝 Activity History</h3>
+                            ${ticket.activity_logs.map(log => `
+                                <div class="activity-item">
+                                    <div class="time">${new Date(log.created_at).toLocaleString()}</div>
+                                    <div class="description">
+                                        <strong>${log.action_type}</strong> by ${log.actor}<br>
+                                        ${escapeHtml(log.description)}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+
+                    <div class="button-group" style="margin-top: 24px;">
+                        <button class="btn btn-danger" onclick="deleteTicket(${ticket.id})">Delete Ticket</button>
+                        <button class="btn btn-secondary" onclick="closeDetailModal()">Close</button>
+                    </div>
+                `;
+            } catch (error) {
+                body.innerHTML = `
+                    <div class="error-message">
+                        Error loading ticket details: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function renderTriageResult(result) {
+            return `
+                <div class="detail-section">
+                    <h3>🤖 AI Triage Results</h3>
+
+                    <div class="triage-info">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <div>
+                                <strong>Priority:</strong> <span class="badge badge-priority ${result.suggested_priority}">${result.suggested_priority}</span>
+                            </div>
+                            <div style="font-size: 14px; color: #718096;">
+                                Confidence: ${(result.priority_confidence * 100).toFixed(0)}%
+                            </div>
+                        </div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width: ${result.priority_confidence * 100}%"></div>
+                        </div>
+                        <p style="margin-top: 12px; color: #4a5568;">
+                            <strong>Rationale:</strong> ${escapeHtml(result.priority_rationale)}
+                        </p>
+                    </div>
+
+                    ${result.suggested_assignee ? `
+                        <div class="triage-info">
+                            <div style="margin-bottom: 12px;">
+                                <strong>Suggested Assignee:</strong> <span class="badge badge-assignee">👤 ${escapeHtml(result.suggested_assignee)}</span>
+                            </div>
+                            <p style="color: #4a5568;">
+                                <strong>Why:</strong> ${escapeHtml(result.assignee_rationale || 'N/A')}
+                            </p>
+                        </div>
+                    ` : ''}
+
+                    <div class="reply-draft-box">
+                        <strong>📧 First Reply Draft:</strong>
+                        <textarea id="replyDraft" style="width: 100%; margin-top: 8px; padding: 12px; border: 2px solid #fbd38d; border-radius: 8px; min-height: 120px;">${escapeHtml(result.reply_draft)}</textarea>
+                        <div class="button-group">
+                            <button class="btn btn-success" onclick="acceptReply(false)">✓ Accept Reply</button>
+                            <button class="btn btn-primary" onclick="acceptReply(true)">✏️ Save Edited Reply</button>
+                        </div>
+                    </div>
+
+                    <p style="margin-top: 12px; font-size: 12px; color: #a0aec0;">
+                        Triaged at: ${new Date(result.triaged_at).toLocaleString()}
+                        ${result.triage_duration_ms ? `• Duration: ${result.triage_duration_ms}ms` : ''}
+                    </p>
+                </div>
+            `;
+        }
+
+        async function triageTicket(ticketId) {
+            const body = document.getElementById('detailBody');
+            const originalContent = body.innerHTML;
+
+            body.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>AI is analyzing the ticket...</p>
+                    <p style="font-size: 14px; color: #a0aec0; margin-top: 10px;">This may take a few seconds</p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`${API_BASE}/triage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ticket_id: ticketId })
+                });
+
+                const result = await response.json();
+
+                if (!result.success) {
+                    throw new Error(result.error || 'Triage failed');
+                }
+
+                // Reload ticket details to show triage results
+                await openTicketDetail(ticketId);
+                loadTickets(); // Refresh main list
+
+            } catch (error) {
+                body.innerHTML = `
+                    <div class="error-message">
+                        <strong>Triage failed:</strong> ${error.message}
+                        <p style="margin-top: 10px;">The AI service may be unavailable or the request timed out. Please try again.</p>
+                        <button class="btn btn-primary" style="margin-top: 10px" onclick="triageTicket(${ticketId})">🔄 Try Again</button>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        ${originalContent}
+                    </div>
+                `;
+            }
+        }
+
+        async function acceptReply(isEdited) {
+            const replyText = document.getElementById('replyDraft').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/tickets/${currentTicketId}/reply`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        reply_text: replyText,
+                        accepted: !isEdited
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(result.message);
+                    openTicketDetail(currentTicketId); // Reload to show activity log
+                }
+            } catch (error) {
+                alert('Error saving reply: ' + error.message);
+            }
+        }
+
+        async function deleteTicket(ticketId) {
+            if (!confirm('Are you sure you want to delete this ticket?')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/tickets/${ticketId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    closeDetailModal();
+                    loadTickets();
+                }
+            } catch (error) {
+                alert('Error deleting ticket: ' + error.message);
+            }
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.remove('active');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Close modals on background click
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
